@@ -39,11 +39,14 @@ namespace BBB
 
             using var webWorker = new wsWorker();
 
+            using var lcdWorker = new LcdWorker();
+
             // Wait for Ctrl+C
             exitEvent.WaitOne();
-            // TODO: Stop the Tasks when the objects go out of scope
+            
             webWorker.RequestStop();
-
+            lcdWorker.RequestStop();
+            
             Console.WriteLine("Exiting Main");
 
             return 0;

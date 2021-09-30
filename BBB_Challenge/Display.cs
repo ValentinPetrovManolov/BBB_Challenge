@@ -1,4 +1,7 @@
 using System;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
+
 using System.Device.I2c;
 using Iot.Device.Ssd13xx;
 using Iot.Device.Ssd13xx.Commands;
@@ -12,6 +15,7 @@ namespace BBB
         private Ssd1306 _ssd1306 = null;
         private I2cDevice _i2cDevice  = null;
 
+        private int rowCounter = 0;
         private void Initialize()
         {
             _ssd1306.SendCommand(new SetDisplayOff());
@@ -42,40 +46,47 @@ namespace BBB
         {
             _ssd1306.SendCommand(new Ssd1306Cmnds.SetColumnAddress());
             _ssd1306.SendCommand(new Ssd1306Cmnds.SetPageAddress(Ssd1306Cmnds.PageAddress.Page0,
-                Ssd1306Cmnds.PageAddress.Page3));
+                Ssd1306Cmnds.PageAddress.Page7));
 
             for (int cnt = 0; cnt < 32; cnt++)
             {
                 byte[] data = new byte[16];
                 _ssd1306.SendData(data);
             }
+
+            rowCounter = 0;
         }
 
         private void SendMessage(string message)
         {
-            _ssd1306.SendCommand(new Ssd1306Cmnds.SetPageAddress(Ssd1306Cmnds.PageAddress.Page0,
-                                Ssd1306Cmnds.PageAddress.Page3));
+            _ssd1306.SendCommand(new Ssd1306Cmnds.SetPageAddress());
 
-            foreach (char character in message)
+     
+            var split = message.Split('\n');
+            foreach (var words in split)
             {
-                if(character == '\n')
+                int i = 0;
+                byte[] data = new byte[128];
+                foreach (char character in words)
                 {
-
+                    BasicFont.GetCharacterBytes(character).CopyTo(data, i);
+                    if (i + 8 > 128)
+                    {
+                        i = 0;
+                    }
+                    i += 8;
                 }
-                else
+                try
                 {
-                    try
-                    {
-                        _ssd1306.SendData(BasicFont.GetCharacterBytes(character));
-                    }
-                    catch (System.Collections.Generic.KeyNotFoundException)
-                    {
-                        _ssd1306.SendData(BasicFont.GetCharacterBytes('?'));
-                    }
-                    
+                    _ssd1306.SendData(data);
+                }
+                catch (System.Collections.Generic.KeyNotFoundException)
+                {
+                    _ssd1306.SendData(BasicFont.GetCharacterBytes('?'));
                 }
             }
         }
+
 
         public void WriteLine(string message)
         {
